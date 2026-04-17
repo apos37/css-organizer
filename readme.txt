@@ -52,6 +52,15 @@ Yes, CSS Organizer works with any theme that supports the WordPress Customizer.
 
 == Changelog ==
 = 1.2.0 =
+* Update: Added sourceURL to all styles so you can easily back-track to which section the css is in from the DevConsole (ie. CSS-Organizer/section_name.css)
+* Update: Added support for block themes on Site Editor, with option to still force the Customizer
+* Update: Added mobile screen size buttons to WP Customizer
+* Update: Added a body tags menu to WP Customizer sections that lets you add body classes from a dropdown
+* Update: Added a variable selector to WP Customizer sections that finds all variables in your css sections and lets you add them to your current section
+* Update: Added an uninstall cleanup option
+* Update: Restyled the settings page
+* Update: Added theme info to settings page
+* Update: Added an export/import option on the settings page
 * Update: Transitioned plugin from premium distribution to a free release on the WordPress.org repository.
 * Update: Revised plugin descriptions and documentation for the WordPress.org release.
 

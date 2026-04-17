@@ -1,6 +1,9 @@
 jQuery( $ => {
     // console.log( 'CSS Organizer Settings JS Loaded...' );
 
+    const l10n = css_organizer_settings;
+
+
     /**
      * TEXT+ FIELDS
      */
@@ -22,6 +25,13 @@ jQuery( $ => {
         index = $( '.fields_container .text-plus-row' ).length;
     }
 
+    function slugifyKey( value ) {
+        return value
+            .toLowerCase()
+            .replace( /[^a-z0-9]+/g, '_' )
+            .replace( /^_+|_+$/g, '' );
+    }
+
     // Add new field
     $( '.add-new-field' ).on( 'click', function() {
         var name = $( this ).data( 'name' );
@@ -31,7 +41,8 @@ jQuery( $ => {
             lastRow.show();
         } else {
             var newRow = lastRow.clone();
-            newRow.find( 'input' ).val( '' ).prop( 'disabled', false );
+            newRow.find( 'input' ).val( '' ).attr( 'value', '' ).prop( 'disabled', false );
+            newRow.find( 'input[data-type="key"]' ).removeData( 'autofill' );
             newRow.find( 'select' ).prop( 'selectedIndex', 0 );
             fieldsContainer.append( newRow );
             updateIndexes();
@@ -91,7 +102,7 @@ jQuery( $ => {
                 if ( labels[labelValue] ) {
                     hasDuplicates = true;
                     labelInput.addClass( 'duplicate' );
-                    warningMessage.show().text( css_organizer.duplicateLabel );
+                    warningMessage.show().text( l10n.duplicateLabel );
                 } else {
                     labels[labelValue] = true;
                     labelInput.removeClass( 'duplicate' );
@@ -104,7 +115,7 @@ jQuery( $ => {
                 if ( keys[keyValue] ) {
                     hasDuplicates = true;
                     keyInput.addClass( 'duplicate' );
-                    warningMessage.show().text( css_organizer.duplicateKey );
+                    warningMessage.show().text( l10n.duplicateKey );
                 } else {
                     keys[keyValue] = true;
                     keyInput.removeClass( 'duplicate' );
@@ -125,13 +136,32 @@ jQuery( $ => {
     $( '#fields_container_css-organizer-sections' ).on( 'input', 'input[data-type="label"], input[data-type="key"]', function () {
         checkForDuplicates();
     } );
+
+    // Auto-fill key from label only when key is empty and editable.
+    $( '#fields_container_css-organizer-sections' ).on( 'input', 'input[data-type="label"]', function () {
+        const row = $( this ).closest( '.text-plus-row' );
+        const keyInput = row.find( 'input[data-type="key"]' );
+        const keyIsAutofill = keyInput.data( 'autofill' ) === true;
+
+        if ( ! keyInput.length || keyInput.prop( 'disabled' ) ) {
+            return;
+        }
+
+        if ( keyInput.val().trim() !== '' && ! keyIsAutofill ) {
+            return;
+        }
+
+        keyInput.val( slugifyKey( $( this ).val() ) ).data( 'autofill', true );
+        checkForDuplicates();
+    } );
     
     // Prevent slug from being uppercase or having special characters/spaces
     $( '#fields_container_css-organizer-sections' ).on( 'input', 'input.metakey', function () {
-        let value = $( this ).val();
-        value = value.toLowerCase();
-        value = value.replace( /[^a-z0-9]+/g, '_' );
-        $( this ).val( value );
+        if ( this === document.activeElement ) {
+            $( this ).data( 'autofill', false );
+        }
+
+        $( this ).val( slugifyKey( $( this ).val() ) );
     } );
 
     // Handle row deletion
@@ -145,4 +175,113 @@ jQuery( $ => {
         $( 'input[data-type="key"]' ).prop( 'disabled', false );
     } );
     
+    
+    /**
+     * Show/hide fields
+     */
+    $( '#css-organizer-force-wp-customizer' ).on( 'change', function() {
+        if ( $( this ).is( ':checked' ) ) {
+            $( '.css-organizer-admin-wrap.settings-page' ).removeClass( 'customizer-inactive' ).addClass( 'customizer-active' );
+        } else {
+            $( '.css-organizer-admin-wrap.settings-page' ).removeClass( 'customizer-active' ).addClass( 'customizer-inactive' );
+        }
+    } );
+
+
+    /**
+     * Toggle button loading state
+     */
+    const toggleBtnLoading = ( $btn, isLoading, originalText ) => {
+        if ( isLoading ) {
+            $btn.prop( 'disabled', true ).html( '<span class="co-spinner"></span>' + originalText );
+        } else {
+            $btn.prop( 'disabled', false ).text( originalText );
+        }
+    };
+
+
+    /**
+     * Export Logic
+     */
+    $( '#co-export-btn' ).on( 'click', function( e ) {
+        e.preventDefault();
+        const $btn = $( this );
+
+        toggleBtnLoading( $btn, true, l10n.exporting );
+
+        $.ajax( {
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'css_organizer_export',
+                nonce: l10n.nonce
+            },
+            success: function( response ) {
+                if ( response.success ) {
+                    const jsonString = JSON.stringify( response.data.data, null, 4 );
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent( jsonString );
+                    
+                    const downloadAnchorNode = document.createElement( 'a' );
+                    downloadAnchorNode.setAttribute( "href", dataStr );
+                    downloadAnchorNode.setAttribute( "download", response.data.filename );
+                    document.body.appendChild( downloadAnchorNode );
+                    downloadAnchorNode.click();
+                    downloadAnchorNode.remove();
+                } else {
+                    alert( response.data.message );
+                }
+            },
+            complete: function() {
+                toggleBtnLoading( $btn, false, l10n.exportBtn );
+            }
+        } );
+    } );
+
+
+    /**
+     * Import Logic
+     */
+    $( '#co-import-form' ).on( 'submit', function( e ) {
+        e.preventDefault();
+
+        const fileInput = $( '#co-import-file' )[0];
+        if ( fileInput.files.length === 0 ) {
+            alert( l10n.selectFile );
+            return;
+        }
+
+        if ( ! confirm( l10n.confirmImport ) ) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append( 'action', 'css_organizer_import' );
+        formData.append( 'nonce', l10n.nonce );
+        formData.append( 'import_file', fileInput.files[0] );
+
+        const $btn = $( this ).find( 'button[type="submit"]' );
+        toggleBtnLoading( $btn, true, l10n.importing );
+
+        $.ajax( {
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function( response ) {
+                if ( response.success ) {
+                    alert( response.data.message );
+                    location.reload();
+                } else {
+                    alert( response.data.message );
+                }
+            },
+            error: function() {
+                alert( l10n.importError );
+            },
+            complete: function() {
+                toggleBtnLoading( $btn, false, l10n.importBtn );
+            }
+        } );
+    } );
 } )

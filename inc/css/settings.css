@@ -1,64 +1,248 @@
-div#fields_container_css-organizer-sections {
-    width: fit-content;
+/* Layout & Container */
+
+.css-organizer-admin-wrap {
+    margin: 20px 20px 0 0;
+    max-width: 100%;
 }
+
+.co-header {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.co-header h1 {
+    font-weight: 700;
+    font-size: 28px;
+    margin: 0 0 5px 0;
+}
+
+.co-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+}
+
+/* Card Styling */
+.co-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+/* Force the Options Header to match the card style */
+
+.co-card h2 {
+    margin: 0 !important;
+    padding: 15px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    background: #fafafa;
+    border-top: 1px solid #f0f0f1;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.co-card-body {
+    padding: 20px;
+}
+
+/* Clean up the WordPress form-table */
+
+.co-card .form-table {
+    margin: 0 0 2rem 0;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.co-card .form-table tr {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.co-card .form-table tr:last-child {
+    border-bottom: none;
+}
+
+.co-card .form-table th {
+    padding: 25px 20px;
+    width: 240px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.co-card .form-table td {
+    padding: 20px;
+}
+
+/* Modern Inputs */
+
+input[type="text"] {
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    padding: 6px 12px;
+    box-shadow: none;
+    transition: border-color 0.1s linear;
+}
+
+input[type="text"]:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+input[type="text"].metakey:disabled {
+    background: #f0f0f1;
+    border-color: #dcdcde;
+    color: #646970;
+    cursor: not-allowed;
+}
+
+/* Draggable Rows Styling */
 
 .text-plus-row {
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.text-plus-row:hover {
+    border-color: #2271b1;
+    background: #f6f7f7;
 }
 
 .text-plus-row .order {
-    font-size: 20px;
-    padding: 0 10px;
-    border-left: 1px solid #ccc;
-    border-right: 1px solid #ccc;
-    margin-right: 10px;
-    cursor: pointer;
-}
-
-.placeholder {
-    border: 2px dashed #ccc;
-    background-color: #f9f9f9;
-    height: 50px;
-    margin: 10px 0;
-}
-
-.duplicate {
-    border: 2px solid yellow  !important;
-    color: white !important;
-    background-color: red !important;
-}
-
-.warning-message {
-    color: red;
+    cursor: grab;
+    color: #949494;
     font-weight: bold;
-    margin-top: 10px;
-    display: none;
-    line-height: 12px;
+    font-size: 18px;
+    padding: 0 5px;
 }
 
-input::placeholder {
-    color: #aaa;
-    opacity: 1;
+/* Form Footer */
+
+.co-form-footer {
+    padding: 16px 20px;
+    background: #fafafa;
+    border-top: 1px solid #f0f0f1;
 }
 
-.license-status {
-    padding: 10px;
-    border-radius: 5px;
-    background: #dc3232;
-    color: white;
-    margin-top: 7px;
+.co-form-footer .submit {
+    margin: 0;
+    padding: 0;
+}
+
+/* Sidebar Info */
+
+.co-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.co-info-row .badge {
+    background: #2271b1;
+    color: #fff;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Description text */
+
+.form-table em {
     display: block;
-    width: fit-content;
-    font-weight: bold;
+    margin-top: 8px;
+    color: #646970;
+    font-style: normal;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
-.license-status.active {
-    background: #46b450 !important;
-    font-weight: normal !important;
+@media (max-width: 1000px) {
+    .co-grid { grid-template-columns: 1fr; }
+    .co-card .form-table th { width: auto; display: block; padding-bottom: 0; }
+    .co-card .form-table td { display: block; padding-top: 10px; }
 }
 
-.license-status a {
-    color: white;
+/* Sidebar Import/Export */
+
+.co-full-width {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    display: flex !important;
+    margin-bottom: 10px !important;
+}
+
+.co-divider {
+    border: 0;
+    border-top: 1px solid #f0f0f1;
+    margin: 20px 0;
+}
+
+.co-file-input-wrapper {
+    margin-bottom: 15px;
+}
+
+.co-file-input-wrapper input[type="file"] {
+    width: 100%;
+    font-size: 12px;
+    padding: 5px 0;
+}
+
+#co-import-form .description {
+    font-size: 12px;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.co-import-export-actions {
+    margin-top: 1rem;
+}
+
+/* Spinner Animation */
+
+.co-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: co-spin 0.8s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes co-spin {
+    to { transform: rotate(360deg); }
+}
+
+.co-full-width:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* Hide Fields */
+
+.css-organizer-admin-wrap.settings-page.classic-theme .css-organizer-force-wp-customizer,
+.css-organizer-admin-wrap.settings-page.customizer-inactive .css-organizer-hide-addt-css,
+.css-organizer-admin-wrap.settings-page.customizer-inactive .css-organizer-important-body-tags,
+.css-organizer-admin-wrap.settings-page.customizer-inactive .css-organizer-mobile-screen-sizes {
+    display: none;
+}
+
+/* Saved Notice */
+
+.wp-core-ui .notice {
+    border-radius: 10px;
 }

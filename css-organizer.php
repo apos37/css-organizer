@@ -32,6 +32,7 @@ final class Bootstrap {
      * Plugin files to load
      */
     public const FILES = [
+        'settings.php',
         'customizer.php',
     ];
 
@@ -40,7 +41,6 @@ final class Bootstrap {
      * Admin-only files
      */
     public const ADMIN_FILES = [
-        'settings.php',
         'plugins-page.php',
     ];
 
@@ -97,7 +97,7 @@ final class Bootstrap {
      * @return bool
      */
     public static function is_test_mode() : bool {
-        return filter_var( apply_filters( 'helpdocs_test_mode', get_option( 'ddtt_test_mode' ) ), FILTER_VALIDATE_BOOLEAN );
+        return filter_var( apply_filters( 'css_organizer_test_mode', get_option( 'ddtt_test_mode' ) ), FILTER_VALIDATE_BOOLEAN );
     } // End is_test_mode()
 
 
@@ -117,7 +117,7 @@ final class Bootstrap {
             deactivate_plugins( plugin_basename( __FILE__ ) );
             wp_die( sprintf(
                 /* translators: %1$s is plugin name, %2$s is required PHP version */
-                esc_html( __( '%1$s requires PHP %2$s or higher.', 'dev-debug-tools' ) ),
+                esc_html( __( '%1$s requires PHP %2$s or higher.', 'css-organizer' ) ),
                 esc_html( $this->meta[ 'name' ] ),
                 esc_html( $this->meta[ 'requires_php' ] )
             ) );

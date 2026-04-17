@@ -16,12 +16,133 @@ class Customizer {
 	 * Constructor
 	 */
 	public function __construct() {
-        add_action( 'customize_register', [ $this, 'register' ], 100 );
-        add_action( 'wp_head', [ $this, 'customize_css' ], 999999 );
-        add_action( 'customize_preview_init', [ $this, 'preview_js' ] );
-        add_action( 'customize_controls_init', [ $this, 'controls_js' ] );
-        add_action( 'customize_controls_enqueue_scripts', [ $this, 'customizer_css' ] );
+        if ( wp_is_block_theme() && ! get_option( Bootstrap::textdomain() . '-force-wp-customizer' ) ) {
+            add_action( 'init', [ $this, 'register_block_settings' ] );
+            add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_block_editor_scripts' ] );
+            add_action( 'enqueue_block_assets', [ $this, 'enqueue_custom_sections_css' ] );
+        } else {
+            add_action( 'customize_register', [ $this, 'register_legacy_customizer_settings' ], 100 );
+            add_action( 'wp_head', [ $this, 'customize_css' ], 999999 );
+            add_action( 'customize_preview_init', [ $this, 'preview_js' ] );
+            add_action( 'customize_controls_init', [ $this, 'controls_js' ] );
+            add_action( 'customize_controls_enqueue_scripts', [ $this, 'customizer_css' ] );
+        }
+
+        add_action( 'update_option', [ $this, 'clean_post_cache' ], 10, 3 );
 	} // End __construct()
+
+
+    /**
+     * Register settings for the Block Editor REST API
+     */
+    public function register_block_settings() {
+        $text_domain = Bootstrap::textdomain();
+
+        foreach ( self::get_sections() as $section ) {
+            $setting_id = $text_domain . '-css-' . $section[ 'key' ];
+
+            register_setting( 'site', $setting_id, [
+                'type'              => 'string',
+                'sanitize_callback' => [ $this, 'sanitize_css_field' ],
+                'show_in_rest'      => [
+                    'name'   => $setting_id,
+                    'schema' => [
+                        'title' => $section[ 'label' ],
+                        'type'  => 'string',
+                    ],
+                ],
+                'default'           => '',
+            ] );
+        }
+    } // End register_block_settings()
+
+
+    /**
+     * Sanitize the CSS field input
+     *
+     * @param string $value The CSS input
+     * @return string The sanitized CSS
+     */
+    public function sanitize_css_field( $value ) {
+        return wp_unslash( $value );
+    } // End sanitize_css_field()
+
+
+    /**
+     * Enqueue Block Editor scripts
+     */
+    public function enqueue_block_editor_scripts() {
+        $text_domain = Bootstrap::textdomain();
+
+        wp_enqueue_script(
+            'css-organizer-block-editor',
+            Bootstrap::url( 'inc/js/site-editor.js' ),
+            [ 
+                'wp-plugins',
+                'wp-edit-site',
+                'wp-editor',
+                'wp-components', 
+                'wp-data', 
+                'wp-core-data', 
+                'wp-i18n',
+                'wp-element' 
+            ],
+            Bootstrap::script_version(),
+            true
+        );
+
+        // Inside your script-enqueuing method
+        $sections = self::get_sections();
+        foreach ( $sections as &$section ) {
+            $option_key = $text_domain . '-css-' . $section[ 'key' ];
+            $section[ 'value' ] = get_option( $option_key, '' );
+        }
+
+        wp_localize_script( 'css-organizer-block-editor', 'css_organizer_data', [
+            'sections'     => $sections,
+            'text_domain'  => $text_domain,
+            'custom_label' => get_option( $text_domain . '-label', __( 'CSS Organizer', 'css-organizer' ) ),
+        ] );
+
+        if ( get_option( $text_domain . '-hide-addt-css' ) == 1 ) {
+            $hide_css = "
+                .wp-sidebar__panel-tab-content button[aria-label='Additional CSS'],
+                .wp-sidebar__panel-tab-content [data-path='customCSS'] {
+                    display: none !important;
+                }
+            ";
+            wp_add_inline_style( 'wp-components', $hide_css );
+        }
+    } // End enqueue_block_editor_scripts()
+
+
+    /**
+     * Enqueue the custom CSS for the frontend based on the sections and their content
+     */
+    public function enqueue_custom_sections_css() {
+        if ( is_admin() ) {
+            return;
+        }
+
+        $text_domain = Bootstrap::textdomain();
+        $combined_css = '';
+
+        foreach ( self::get_sections() as $section ) {
+            $unique_id = $text_domain . '-css-' . $section[ 'key' ];
+            $css_content = get_option( $unique_id, '' );
+
+            if ( ! empty( $css_content ) ) {
+                $combined_css .= "/* " . esc_html( $section[ 'label' ] ) . " */\n";
+                $combined_css .= wp_unslash( $css_content ) . "\n\n";
+            }
+        }
+
+        if ( ! empty( $combined_css ) ) {
+            wp_register_style( 'css-organizer-frontend', false, [], Bootstrap::script_version() );
+            wp_enqueue_style( 'css-organizer-frontend' );
+            wp_add_inline_style( 'css-organizer-frontend', $combined_css );
+        }
+    } // End enqueue_custom_sections_css()
 
 
     /**
@@ -71,7 +192,7 @@ class Customizer {
      *
      * @return void
      */
-    public function register( $wp_customize ) {
+    public function register_legacy_customizer_settings( $wp_customize ) {
         $text_domain = Bootstrap::textdomain();
         $panel_id = $text_domain . '-custom-css';
 
@@ -94,13 +215,28 @@ class Customizer {
         // Count
         $priority = 1;
 
-        // Expand buttons
-        $expand_btns = apply_filters( 'cssorganizer_expand_btns', [ 18, 30, 50, 80 ] );
-        $expand_btns_string = '';
-        foreach ( $expand_btns as $percent ) {
-            $disabled = $percent == 18 ? ' disabled' : '';
-            $expand_btns_string .= '<button class="button button-secondary css-organizer-expand-btn" data-width="' . $percent . '"' . $disabled . '>' . $percent . '%</button> ';
-        }
+        // First Row: Expansion Buttons + Body Dropdown
+        $expand_btns = apply_filters( 'css_organizer_expand_btns', [ 18, 30, 50, 80 ] );
+        $section_desc = '<div class="css-organizer-expand-btns">';
+            foreach ( $expand_btns as $percent ) {
+                $disabled = $percent == 18 ? ' disabled' : '';
+                $section_desc .= '<button class="button button-secondary css-organizer-expand-btn" data-width="' . $percent . '"' . $disabled . '>' . $percent . '%</button> ';
+            }
+            $section_desc .= '<button class="button button-secondary css-organizer-right-float-btn css-organizer-body-tags-dropdown" title="Body Classes">&lt;body&gt;</button>';
+        $section_desc .= '</div>';
+
+        // Second Row: Media Queries + Local Vars
+        $section_desc .= '<div class="css-organizer-mq-row">';
+            $mobile_sizes = get_option( $text_domain . '-mobile-screen-sizes', '480px, 768px, 1024px, 1280px' );
+            $mobile_sizes = array_map( 'trim', explode( ',', $mobile_sizes ) );
+
+            foreach ( $mobile_sizes as $width ) {
+                $width_num = intval( $width );
+                $section_desc .= '<button class="button button-secondary css-organizer-mq-btn" data-mq="' . esc_attr( $width ) . '" title="Media Query ' . esc_attr( $width ) . '">' . esc_html( $width_num ) . '</button> ';
+            }
+
+            $section_desc .= '<button class="button button-secondary css-organizer-right-float-btn css-organizer-local-vars-btn" title="Variable Picker">--x</button>';
+        $section_desc .= '</div>';
 
         // Iter the sections
         foreach ( self::get_sections() as $order => $section ) {
@@ -112,8 +248,8 @@ class Customizer {
             $wp_customize->add_section( $section_id,
                 [
                     'panel'         => $panel_id,
-                    'title'         => __( $section[ 'label' ], 'css-organizer' ),
-                    'description'   => $expand_btns_string,
+                    'title'         => $section[ 'label' ],
+                    'description'   => $section_desc,
                     'capability'    => 'edit_css',
                     'priority'      => $priority,
                 ] 
@@ -163,7 +299,7 @@ class Customizer {
         if ( get_option( $text_domain . '-hide-addt-css' ) == 1 ) {
             $wp_customize->remove_section( 'custom_css' );
         }
-    } // End register()
+    } // End register_legacy_customizer_settings()
 
 
     /**
@@ -172,17 +308,23 @@ class Customizer {
      * @return void
      */
     public function customize_css() {
-        // Get our sections
-        $sections = $this->sections;
+        $text_domain = Bootstrap::textdomain();
 
-        // Iter the sections
-        foreach ( $sections as $order => $section ) {
-
-            $unique_id = CSSORGANIZER_TEXTDOMAIN.'-css-'.$section[ 'key' ];
+        foreach ( self::get_sections() as $order => $section ) {
+            $unique_id = $text_domain . '-css-' . $section[ 'key' ];
+            $css_content = get_option( $unique_id, '' );
 
             // Add it if not blank
-            if ( get_option( $unique_id, '' ) != '' || is_customize_preview() ) {
-                echo '<style id="'.esc_attr( CSSORGANIZER_TEXTDOMAIN.'-'.$section[ 'key' ] ).'">'.wp_kses_post( get_option( $unique_id, '' ) ).'</style>';
+            if ( ! empty( $css_content ) || is_customize_preview() ) {
+                // We use the section label to create a "Virtual Filename"
+                $virtual_name = str_replace( ' ', '-', strtolower( $section[ 'label' ] ) ) . '.css';
+                
+                echo '<style id="' . esc_attr( $text_domain . '-' . $section[ 'key' ] ) . '">';
+                echo wp_kses_post( wp_unslash( $css_content ) );
+                
+                // This is the magic line for DevTools
+                echo "\n/*# sourceURL=CSS-Organizer/" . esc_attr( $virtual_name ) . " */";
+                echo '</style>';
             }
         }
     } // End customize_css()
@@ -208,7 +350,21 @@ class Customizer {
     public function controls_js() {
         $text_domain = Bootstrap::textdomain();
         wp_enqueue_script( $text_domain . '-css-controls', Bootstrap::url( 'inc/js/customizer-controls.js' ), [ 'customize-controls' ], Bootstrap::script_version(), true );
-        // wp_localize_script( $text_domain . '-css-controls', str_replace( '-', '_', $text_domain ), [ 'sections' => $this->get_section_keys() ] );
+
+        $important_body_tags = sanitize_text_field( get_option( $text_domain . '-important-body-tags', 'home, blog, archive, single, page, postid-, page-id-, logged-in, page-template-' ) );
+        $important_body_tags = array_map( 'trim', explode( ',', $important_body_tags ) );
+
+        $saved_css_data = [];
+        foreach ( self::get_sections() as $section ) {
+            $option_id = $text_domain . '-css-' . $section[ 'key' ];
+            $saved_css_data[ $section[ 'key' ] ] = get_option( $option_id, '' );
+        }
+        
+        wp_localize_script( $text_domain . '-css-controls', str_replace( '-', '_', $text_domain ) . '_controls', [ 
+            'text_domain'         => $text_domain,
+            'important_body_tags' => $important_body_tags,
+            'saved_values'        => $saved_css_data
+        ] );
     } // End controls_js()
 
 
@@ -219,34 +375,47 @@ class Customizer {
      */
     public function customizer_css() {
         $text_domain = Bootstrap::textdomain();
-        // Get our sections
+        $handle = $text_domain . '-customizer-css';
+
+        // 1. Enqueue the static CSS file
+        wp_enqueue_style( $handle, Bootstrap::url( 'inc/css/customizer.css' ), [], Bootstrap::script_version() );
+
+        // 2. Generate the dynamic height CSS
         $sections = self::get_sections();
-
-        // Set the css field classes
         $outer_classes = [];
-        foreach ( $sections as $order => $section ) {
-            $outer_classes[] = '#sub-accordion-section-' . $text_domain . '-css-' . $section[ 'key' ];
-            $outer_classes[] = '#sub-accordion-section-' . $text_domain . '-css-' . $section[ 'key' ] . ' .customize-control-code_editor .CodeMirror';
-            $outer_classes[] = '#sub-accordion-section-' . $text_domain . '-css-' . $section[ 'key' ] . ' .customize-control-code_editor textarea';
-        }
         $inner_classes = [];
-        foreach ( $sections as $order => $section ) {
-            $inner_classes[] = '#sub-accordion-section-' . $text_domain . '-css-' . $section[ 'key' ] . ' .customize-control';
+
+        foreach ( $sections as $section ) {
+            $base_selector = '#sub-accordion-section-' . $text_domain . '-css-' . $section['key'];
+            $outer_classes[] = $base_selector;
+            $outer_classes[] = $base_selector . ' .customize-control-code_editor .CodeMirror';
+            $outer_classes[] = $base_selector . ' .customize-control-code_editor textarea';
+            $inner_classes[] = $base_selector . ' .customize-control';
         }
 
-        // Let us make the css field height 100%
-        echo '<style type="text/css" id="'.esc_attr( $text_domain ).'">
-        '.esc_html( implode( ', ', $outer_classes ) ).' {
-            height: 100% !important;
-        }
-        '.esc_html( implode( ', ', $inner_classes ) ).' {
-            height: calc(100% - 142px) !important;
-        }
+        $dynamic_css = implode( ', ', $outer_classes ) . ' { height: 100% !important; } ';
+        $dynamic_css .= implode( ', ', $inner_classes ) . ' { height: calc(100% - 155px) !important; } ';
+        $dynamic_css .= '.accordion-section-title button.accordion-trigger { height: revert !important; }';
 
-        /* Fix the WP Customizer buttons */
-        .accordion-section-title button.accordion-trigger {
-            height: revert !important;
-        }
-        </style>';
+        // 3. Attach the dynamic CSS to the handle
+        wp_add_inline_style( $handle, $dynamic_css );
     } // End customizer_css()
+
+
+    /**
+     * Clean the post cache when a CSS option is updated
+     *
+     * @param string $option_name The name of the updated option
+     * @param mixed $old_value The old value of the option
+     * @param mixed $value The new value of the option
+     */
+    public function clean_post_cache( $option_name, $old_value, $value ) {
+        if ( strpos( $option_name, 'css-organizer-css-' ) === 0 ) {
+            clean_post_cache( get_current_blog_id() );
+        }
+    } // End clean_post_cache()
+
 }
+
+
+new Customizer();

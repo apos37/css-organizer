@@ -1,0 +1,120 @@
+/* Hide the notice on block theme sites */
+
+li[data-code="site_editor_block_theme_notice"] {
+    display: none;
+}
+
+/* Toolbar */
+
+.css-organizer-expand-btns,
+.css-organizer-mq-row {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    clear: both;
+}
+
+.css-organizer-expand-btns button,
+.css-organizer-mq-row button {
+    font-family: monospace;
+    font-size: 13px !important;
+    height: 24px !important;
+    line-height: 1 !important;
+}
+
+.css-organizer-right-float-btn {
+    float: right;
+}
+
+/* Dropdown Menus */
+
+.custom-body-class-menu, 
+.custom-local-vars-menu {
+    position: absolute;
+    right: 20px;
+    z-index: 999999;
+    background: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin: 5px 0 0 0;
+    padding: 0;
+    width: 220px; 
+    overflow: hidden;
+}
+
+.custom-body-class-menu,
+.custom-local-vars-menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 250px; 
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.custom-body-class-menu li,
+.custom-local-vars-menu li {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 11px;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: #fff;
+}
+
+.custom-body-class-menu li:last-child,
+.custom-local-vars-menu li:last-child {
+    border-bottom: none;
+}
+
+.custom-body-class-menu li:hover,
+.custom-local-vars-menu li:hover,
+.custom-body-class-menu li.is-important:hover,
+.custom-local-vars-menu li.is-important:hover {
+    background-color: #2271b1 !important;
+    color: #fff !important;
+}
+
+.custom-body-class-menu li.is-important,
+.custom-local-vars-menu li.is-important {
+    font-weight: bold;
+    color: #2271b1;
+    background-color: #f6f7f7;
+}
+
+.custom-body-class-menu li.is-important::before,
+.custom-local-vars-menu li.is-important::before {
+    content: "★ ";
+    font-size: 10px;
+    margin-right: 4px;
+    color: #dba617;
+}
+
+.custom-local-vars-menu .vars-search {
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+    font-size: 12px;
+    background: #f9f9f9;
+    box-sizing: border-box; 
+}
+
+span.var-color-swatch {
+    height: 10px;
+    width: 10px;
+    float: right;
+    margin-top: 3px;
+    border-radius: 1px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix the WP Customizer buttons */
+
+.accordion-section-title button.accordion-trigger {
+    height: revert !important;
+}
