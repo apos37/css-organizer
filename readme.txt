@@ -20,13 +20,17 @@ The plugin adds its own CSS sections underneath the default **Additional CSS** p
 The plugin ships with several default sections to get started, but you can remove them, reorder them, or create your own sections from the settings page.
 
 **Features:**
-- Multiple organized CSS sections inside the Customizer
+- Multiple organized CSS sections inside the Customizer (or Site Editor for block themes)
+- Option to force adding the WP Customizer on block themes
 - Default sections included, fully customizable
 - Create, remove, and reorder sections from the settings page
 - CSS stored separately per section for better organization
 - Optional ability to disable the default Additional CSS panel
 - Expand the Customizer editor width to 30%, 50%, or 80% of the screen
-- Works with any theme that supports the WordPress Customizer
+- Quickly add @media snippets for various screen sizes
+- Body class selector tool
+- Variable picker for pasting variables you've set in other sections
+- Export/import all settings and CSS from one site to another
 
 This plugin is useful for web designers and site builders who want better CSS organization while still using the WordPress Customizer’s live preview.
 
@@ -34,14 +38,13 @@ This plugin is useful for web designers and site builders who want better CSS or
 1. Upload the plugin files to the `/wp-content/plugins/css-organizer/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Go to Appearance > CSS Organizer to set up sections
-4. Go to Appearance > Customize to enter WordPress Customizer
 
 == Frequently Asked Questions ==
 = How does this plugin help with CSS management? =
 By allowing you to create separate sections for your CSS, you can easily organize your styles according to specific categories, which reduces clutter and enhances usability.
 
 = Is this plugin compatible with all themes? =
-Yes, CSS Organizer works with any theme that supports the WordPress Customizer.
+CSS Organizer will be added to any theme that supports the WordPress Customizer. Block themes have the option of adding sections to the Site Editor's template editor or force adding the WordPress Customizer if you prefer.
 
 == Screenshots ==
 1. Easily add and sort sections from the settings page under Appearance > CSS Organizer
@@ -49,6 +52,9 @@ Yes, CSS Organizer works with any theme that supports the WordPress Customizer.
 3. Customizer CSS Organizer sections
 4. Customizer CSS Organizer section
 5. Expand the customizer to 30%, 50% or 80% of the screen for easier editing
+6. Body class selector
+7. Variable picker allows you to quickly paste variables you set in other sections
+8. CSS sections in Site Editor template editor in block themes without forcing WP Customizer
 
 == Changelog ==
 = 1.2.0 =
