@@ -46,6 +46,9 @@ By allowing you to create separate sections for your CSS, you can easily organiz
 = Is this plugin compatible with all themes? =
 CSS Organizer will be added to any theme that supports the WordPress Customizer. Block themes have the option of adding sections to the Site Editor's template editor or force adding the WordPress Customizer if you prefer.
 
+== Demo ==
+https://youtu.be/ySmYpACb8W8
+
 == Screenshots ==
 1. Easily add and sort sections from the settings page under Appearance > CSS Organizer
 2. Customizer options with CSS Organizer at the bottom
