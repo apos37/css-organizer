@@ -64,7 +64,7 @@ class Customizer {
      * @return string The sanitized CSS
      */
     public function sanitize_css_field( $value ) {
-        return wp_unslash( $value );
+        return wp_strip_all_tags( wp_unslash( $value ) );
     } // End sanitize_css_field()
 
 
@@ -190,6 +190,7 @@ class Customizer {
     /**
      * Add our own Theme Customizer settings, sections, and controls
      *
+     * @param \WP_Customize_Manager $wp_customize
      * @return void
      */
     public function register_legacy_customizer_settings( $wp_customize ) {
@@ -320,7 +321,7 @@ class Customizer {
                 $virtual_name = str_replace( ' ', '-', strtolower( $section[ 'label' ] ) ) . '.css';
                 
                 echo '<style id="' . esc_attr( $text_domain . '-' . $section[ 'key' ] ) . '">';
-                echo wp_kses_post( wp_unslash( $css_content ) );
+                echo wp_strip_all_tags( wp_check_invalid_utf8( $css_content ) );
                 
                 // This is the magic line for DevTools
                 echo "\n/*# sourceURL=CSS-Organizer/" . esc_attr( $virtual_name ) . " */";

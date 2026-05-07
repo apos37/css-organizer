@@ -11,8 +11,8 @@
  * Author URI:          https://pluginrx.com/
  * Discord URI:         https://discord.gg/3HnzNEJVnR
  * Text Domain:         css-organizer
- * License:             GPLv2 or later
- * License URI:         http://www.gnu.org/licenses/gpl-2.0.txt
+ * License:             Proprietary
+ * License URI:         https://pluginrx.com/proprietary-license-agreement/
  * Created on:          August 8, 2024
  */
 
@@ -88,6 +88,7 @@ final class Bootstrap {
         $this->meta = $this->load_meta();
         $this->check_environment();
         add_action( 'plugins_loaded', [ $this, 'load_files' ] );
+        add_action( 'plugins_loaded', [ $this, 'check_for_updates' ] );
     } // End __construct()
 
 
@@ -160,11 +161,40 @@ final class Bootstrap {
 
 
     /**
+     * Check for plugin updates
+     */
+    public function check_for_updates() : void {
+        require_once __DIR__ . '/inc/updater.php';
+
+        $args = [
+            'name'            => self::meta( 'name' ),
+            'text_domain'     => self::meta( 'textdomain' ),
+            'basename'        => self::basename(),
+            'version'         => self::version(),
+            'author_uri'      => self::meta( 'author_uri' ),
+            'plugin_uri'      => self::meta( 'plugin_uri' ),
+            'prefix'          => 'css_organizer',
+        ];
+        new Updater( $args );
+    } // End check_for_updates()
+
+
+    /**
      * Get metadata value
      */
     public static function meta( string $key ) : string {
         return self::$instance->meta[ $key ] ?? '';
     } // End meta()
+
+
+    /**
+     * Get plugin basename
+     *
+     * @return string
+     */
+    public static function basename() : string {
+        return plugin_basename( __FILE__ );
+    } // End basename()
 
 
     /**

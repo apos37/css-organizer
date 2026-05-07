@@ -11,33 +11,37 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 /**
- * Helper to check the cleanup setting with Multisite Priority.
+ * Runs all uninstall cleanup logic in an isolated scope.
  */
-function css_organizer_should_cleanup_on_uninstall() {
+function css_organizer_run_uninstall() {
+
+    /**
+     * Check the cleanup setting before proceeding.
+     */
     $css_organizer_cleanup_key = 'css-organizer-uninstall-cleanup';
-    return (bool) get_option( $css_organizer_cleanup_key, false );
-}
+    if ( ! (bool) get_option( $css_organizer_cleanup_key, false ) ) {
+        return;
+    }
 
-if ( ! css_organizer_should_cleanup_on_uninstall() ) {
-    return;
-}
+    global $wpdb;
 
-global $wpdb;
+    $css_organizer_opt_prefix = 'css-organizer-';
 
-$css_organizer_opt_prefix = 'css-organizer-';
+    /**
+     * Clean up Options
+     */
+    $css_organizer_options = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore
+        "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+        $wpdb->esc_like( $css_organizer_opt_prefix ) . '%'
+    ) );
 
-/**
- * Clean up Options
- */
-$css_organizer_options = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore 
-    "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-    $wpdb->esc_like( $css_organizer_opt_prefix ) . '%'
-) );
-
-if ( ! empty( $css_organizer_options ) ) {
-    foreach ( $css_organizer_options as $css_organizer_option_name ) {
-        delete_option( $css_organizer_option_name );
+    if ( ! empty( $css_organizer_options ) ) {
+        foreach ( $css_organizer_options as $css_organizer_option_name ) {
+            delete_option( $css_organizer_option_name );
+        }
     }
 }
+
+css_organizer_run_uninstall();
 
 // Finished.

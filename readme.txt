@@ -5,8 +5,8 @@ Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
 Stable tag: 1.2.0
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+License: Proprietary
+License URI: https://pluginrx.com/proprietary-license-agreement/
 
 Organize Customizer CSS into separate sections for a cleaner, more manageable editing experience.
 

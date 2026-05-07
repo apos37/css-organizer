@@ -655,7 +655,7 @@ class Settings {
     /**
      * Custom callback function to print number field
      *
-     * @param [type] $args
+     * @param array $args
      * @return void
      */
     public function settings_field_number( $args ) {
@@ -684,6 +684,7 @@ class Settings {
 	/**
      * Enqueue javascript
      *
+     * @param string $hook The current admin page hook
      * @return void
      */
     public function enqueue_scripts( $hook ) {
