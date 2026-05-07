@@ -197,7 +197,7 @@ class Settings {
                             <div class="co-import-export-actions">
                                 <div class="co-action-row">
                                     <button type="button" id="co-export-btn" class="button button-secondary co-full-width">
-                                        <?php esc_html_e( 'Export Settings (JSON)', 'css-organizer' ); ?>
+                                        <?php esc_html_e( 'Export CSS & Settings (JSON)', 'css-organizer' ); ?>
                                     </button>
                                 </div>
 
