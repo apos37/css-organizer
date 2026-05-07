@@ -14,6 +14,7 @@
  * License:             Proprietary
  * License URI:         https://pluginrx.com/proprietary-license-agreement/
  * Created on:          August 8, 2024
+ * Premium:             true
  */
 
 namespace PluginRx\CssOrganizer;
