@@ -2,9 +2,9 @@
 Contributors: apos37
 Tags: css, customizer, organization, styles, preview
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 1.2.0
+Stable tag: 1.2.0.1
 License: Proprietary
 License URI: https://pluginrx.com/proprietary-license-agreement/
 
@@ -60,6 +60,9 @@ https://youtu.be/ySmYpACb8W8
 8. CSS sections in Site Editor template editor in block themes without forcing WP Customizer
 
 == Changelog ==
+= 1.2.0.1 =
+* Compatibility: Tested with WordPress 7.0
+
 = 1.2.0 =
 * Update: Added sourceURL to all styles so you can easily back-track to which section the css is in from the DevConsole (ie. CSS-Organizer/section_name.css)
 * Update: Added support for block themes on Site Editor, with option to still force the Customizer

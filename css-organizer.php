@@ -3,9 +3,9 @@
  * Plugin Name:         CSS Organizer
  * Plugin URI:          https://pluginrx.com/plugin/css-organizer
  * Description:         Organize Customizer CSS into separate sections for a cleaner, more manageable editing experience.
- * Version:             1.2.0
+ * Version:             1.2.0.1
  * Requires at least:   6.0
- * Tested up to:        6.9
+ * Tested up to:        7.0
  * Requires PHP:        8.0
  * Author:              PluginRx
  * Author URI:          https://pluginrx.com/
