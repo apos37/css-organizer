@@ -79,8 +79,8 @@ https://youtu.be/ySmYpACb8W8
 * Update: Restyled the settings page
 * Update: Added theme info to settings page
 * Update: Added an export/import option on the settings page
-* Update: Transitioned plugin from premium distribution to a free release on the WordPress.org repository.
-* Update: Revised plugin descriptions and documentation for the WordPress.org release.
+* Update: Transitioned plugin from premium distribution to a free release.
+* Update: Revised plugin descriptions and documentation.
 
 = 1.1.0 =
 * Update: New support links
