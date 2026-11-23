@@ -2,11 +2,11 @@
 Contributors: apos37
 Tags: css, customizer, organization, styles, preview
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.2.0.1
-License: Proprietary
-License URI: https://pluginrx.com/proprietary-license-agreement/
+Stable tag: 1.2.1
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Organize Customizer CSS into separate sections for a cleaner, more manageable editing experience.
 
@@ -60,6 +60,12 @@ https://youtu.be/ySmYpACb8W8
 8. CSS sections in Site Editor template editor in block themes without forcing WP Customizer
 
 == Changelog ==
+= 1.2.1 =
+* Update: Replaced the old license-based updater with a drop-in updater that checks PluginRx.com for new versions. No license key is needed.
+* Update: Added the Update URI header so WordPress only looks for updates from PluginRx.com.
+* Update: Changed the license to GPLv2 or later.
+* Update: Removed the license requirement from update checks.
+
 = 1.2.0.1 =
 * Compatibility: Tested with WordPress 7.0
 

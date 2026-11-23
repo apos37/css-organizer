@@ -1,245 +1,210 @@
 <?php
 /**
- * Checking for updates
+ * PluginRx Updater (drop-in)
+ *
+ * Identical in every PluginRx-exclusive plugin. Nothing to configure.
+ * Requires this header in the main plugin file: Update URI: https://pluginrx.com/
+ * Load it with: require_once __DIR__ . '/inc/updater.php';
  */
-
-namespace PluginRx\CssOrganizer;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-class Updater {
+if ( ! class_exists( 'PluginRx_Updater' ) ) {
 
-    private array $args;
-    private string $svn_path;
-    private string $cache_key;
-    
+    class PluginRx_Updater {
 
-    /**
-     * Constructor
-     * 
-     * @param array $args
-     */
-    public function __construct( $args ) {
-
-        $this->args = $args;
-        $this->svn_path = $args[ 'author_uri' ] . 'wp-content/svn/' . $this->args[ 'text_domain' ] . '/';
-        $this->cache_key = $args[ 'prefix' ] . '_update_check';
-
-        // Hooks for update checking
-        add_filter( 'plugins_api', [ $this, 'info' ], 20, 3 );
-        add_filter( 'pre_set_site_transient_update_plugins', [ $this, 'pre_check' ] ); // phpcs:ignore
-        add_action( 'upgrader_process_complete', [ $this, 'purge' ], 10, 2 );
-        add_filter( 'site_transient_update_plugins', [ $this, 'filter_plugin_updates' ] );
-
-    } // End __construct()
+        const HOST      = 'pluginrx.com';
+        const ENDPOINT  = 'https://pluginrx.com/wp-content/svn/info.php';
+        const CACHE_TTL = 600;
 
 
-    /**
-     * Make the request to the update server
-     *
-     * @return object|false
-     */
-    private function request() {
-        $transient = get_transient( $this->cache_key );
-        $now = time();
+        /**
+         * The single instance of the class
+         *
+         * @var self|null
+         */
+        private static $instance = null;
 
-        $cache_expire = 15 * MINUTE_IN_SECONDS; // short-lived cache
-        $cache_stale  = 10 * MINUTE_IN_SECONDS; // treat stale if older than this
 
-        if ( false === $transient || ! isset( $transient->fetched_at ) || ( $now - $transient->fetched_at ) > $cache_stale ) {
+        /**
+         * Get the singleton instance
+         *
+         * @return self
+         */
+        public static function instance() {
+            if ( null === self::$instance ) {
+                self::$instance = new self();
+            }
+            return self::$instance;
+        } // End instance()
 
-            $info_path = $this->args[ 'author_uri' ] . 'wp-content/svn/info.php?plugin=' . $this->args[ 'text_domain' ] . '&site=' . home_url();
-            $remote = wp_remote_get( $info_path, [
-                'timeout' => 15,
-                'headers' => [ 'Accept' => 'application/json' ]
-            ] );
 
-            if ( is_wp_error( $remote ) ) {
-                if ( Bootstrap::is_test_mode() ) {
-                    error_log( $this->args[ 'name' ] . ': WP_Error fetching update info: ' . $remote->get_error_message(), 0 ); // phpcs:ignore
-                }
-                return false;
+        /**
+         * Constructor
+         */
+        private function __construct() {
+            add_filter( 'update_plugins_' . self::HOST, [ $this, 'check' ], 10, 3 );
+            add_filter( 'plugins_api', [ $this, 'details' ], 20, 3 );
+        } // End __construct()
+
+
+        /**
+         * Offer an update to WordPress core for any plugin whose Update URI is ours
+         *
+         * @param array|false $update
+         * @param array $plugin_data
+         * @param string $plugin_file
+         * @return array|false
+         */
+        public function check( $update, $plugin_data, $plugin_file ) {
+            $slug = dirname( $plugin_file );
+            if ( '.' === $slug ) {
+                return $update;
             }
 
-            $status_code = wp_remote_retrieve_response_code( $remote );
-            if ( 200 !== $status_code ) {
-                if ( Bootstrap::is_test_mode() ) {
-                    error_log( $this->args[ 'name' ] . ': HTTP ' . $status_code . ' fetching update info', 0 ); // phpcs:ignore
-                }
-                return false;
+            $remote = $this->request( $slug );
+            if ( ! $remote || ! $this->is_compatible( $remote ) ) {
+                return $update;
             }
 
-            $body = wp_remote_retrieve_body( $remote );
-            $decoded = json_decode( $body );
+            return [
+                'id'           => isset( $plugin_data[ 'UpdateURI' ] ) ? $plugin_data[ 'UpdateURI' ] : '',
+                'slug'         => $slug,
+                'version'      => $remote->version,
+                'url'          => ! empty( $remote->url ) ? $remote->url : 'https://' . self::HOST . '/plugin/' . $slug,
+                'package'      => $remote->package,
+                'tested'       => ! empty( $remote->tested ) ? $remote->tested : '',
+                'requires'     => ! empty( $remote->requires ) ? $remote->requires : '',
+                'requires_php' => ! empty( $remote->requires_php ) ? $remote->requires_php : '',
+                'icons'        => ! empty( $remote->icons ) ? (array) $remote->icons : [],
+                'banners'      => ! empty( $remote->banners ) ? (array) $remote->banners : [],
+            ];
+        } // End check()
 
-            if ( json_last_error() !== JSON_ERROR_NONE ) {
-                if ( Bootstrap::is_test_mode() ) {
-                    error_log( $this->args[ 'name' ] . ': JSON decode error: ' . json_last_error_msg(), 0 ); // phpcs:ignore
-                }
-                return false;
+
+        /**
+         * Feed the "View details" modal
+         *
+         * @param false|object|array $res
+         * @param string $action
+         * @param object $args
+         * @return false|object|array
+         */
+        public function details( $res, $action, $args ) {
+            if ( 'plugin_information' !== $action || false !== $res || empty( $args->slug ) || ! $this->is_ours( $args->slug ) ) {
+                return $res;
             }
 
-            // Add fetched timestamp
-            $decoded->fetched_at = $now;
+            $remote = $this->request( $args->slug );
+            if ( ! $remote ) {
+                return $res;
+            }
 
-            // Cache for 15 minutes
-            set_transient( $this->cache_key, $decoded, $cache_expire );
+            $info                = new stdClass();
+            $info->name          = $remote->name;
+            $info->slug          = $args->slug;
+            $info->version       = $remote->version;
+            $info->author        = '<a href="https://' . self::HOST . '/">PluginRx</a>';
+            $info->homepage      = ! empty( $remote->url ) ? $remote->url : 'https://' . self::HOST . '/plugin/' . $args->slug;
+            $info->requires      = ! empty( $remote->requires ) ? $remote->requires : '';
+            $info->requires_php  = ! empty( $remote->requires_php ) ? $remote->requires_php : '';
+            $info->tested        = ! empty( $remote->tested ) ? $remote->tested : '';
+            $info->last_updated  = ! empty( $remote->last_updated ) ? $remote->last_updated : '';
+            $info->download_link = $remote->package;
+            $info->sections      = ! empty( $remote->sections ) ? (array) $remote->sections : [];
+            $info->banners       = ! empty( $remote->banners ) ? (array) $remote->banners : [];
 
-            return $decoded;
-        }
-
-        return $transient;
-    } // End request()
-
-
-    /**
-     * Get plugin info (for the "View Details" link on the update page)
-     *
-     * @param false|object|array $res
-     * @param string $action
-     * @param object $args
-     * @return object
-     */
-    public function info( $res, $action, $args ) {
-        if ( 'plugin_information' !== $action ) {
-            return $res;
-        }
-
-        if ( $this->args[ 'text_domain' ] !== $args->slug ) {
-            return $res;
-        }
-
-        $remote = $this->request();
-        if ( ! $remote ) {
-            return $res;
-        }
-
-        return $this->prepare( $remote );
-    } // End info()
+            return $info;
+        } // End details()
 
 
-    /**
-     * Prepare the object
-     *
-     * @param object|false $remote
-     * @return object
-     */
-    public function prepare( $remote ) {
-        if ( ! $remote ) {
+        /**
+         * Fetch the latest release info for a plugin
+         *
+         * @param string $slug
+         * @return object|false
+         */
+        private function request( $slug ) {
+            $cache_key = 'prx_upd_' . md5( $slug );
+            $force     = isset( $_GET[ 'force-check' ] ); // phpcs:ignore
+
+            if ( ! $force ) {
+                $cached = get_site_transient( $cache_key );
+                if ( 'error' === $cached ) {
+                    return false;
+                } elseif ( is_object( $cached ) ) {
+                    return $cached;
+                }
+            }
+
+            $url      = add_query_arg( [ 'plugin' => $slug, 'site' => home_url() ], self::ENDPOINT );
+            $response = wp_remote_get( $url, [ 'timeout' => 10, 'headers' => [ 'Accept' => 'application/json' ] ] );
+
+            if ( is_wp_error( $response ) ) {
+                $this->log( $slug . ': ' . $response->get_error_message() );
+            } elseif ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+                $this->log( $slug . ': HTTP ' . wp_remote_retrieve_response_code( $response ) );
+            } else {
+                $data = json_decode( wp_remote_retrieve_body( $response ) );
+                if ( is_object( $data ) && ! empty( $data->version ) && ! empty( $data->package ) ) {
+                    set_site_transient( $cache_key, $data, self::CACHE_TTL );
+                    return $data;
+                }
+                $this->log( $slug . ': invalid response' );
+            }
+
+            set_site_transient( $cache_key, 'error', 5 * MINUTE_IN_SECONDS );
             return false;
-        }
-
-        $tags_path = $this->svn_path . 'tags/';
-        $assets_path = $this->svn_path . 'assets/';
-
-        $res = new \stdClass();
-        $res->id = 'wpe/plugins/' . $this->args[ 'text_domain' ];
-        $res->name = $remote->name;
-        $res->slug = $this->args[ 'text_domain' ];
-        $res->plugin = $this->args[ 'basename' ];
-        $res->new_version = $remote->version;
-        $res->url = $this->args[ 'plugin_uri' ];
-        $res->package = $tags_path . $this->args[ 'text_domain' ] . '.' . $remote->version . '.zip';
-        $res->tested = $remote->tested;
-        $res->requires = $remote->requires;
-        $res->requires_php = $remote->requires_php;
-        $res->last_updated = $remote->last_updated;
-        $res->license_required = $remote->license_required ?? true;
-
-        $res->sections = [
-            'description' => $remote->sections->description,
-            'changelog' => $remote->sections->changelog,
-            'installation' => $remote->sections->installation,
-        ];
-
-        $res->icons = [
-            '1x' => $assets_path . 'icon-128x128.png',
-            '2x' => $assets_path . 'icon-256x256.png'
-        ];
-        $res->banners = [
-            'low' => $assets_path . 'banner-772x250.png',
-            'high' => $assets_path . 'banner-1544x500.png'
-        ];
-
-        return $res;
-    } // End prepare()
+        } // End request()
 
 
-    /**
-     * Check for plugin updates
-     *
-     * @param object $transient
-     * @return object
-     */
-    public function pre_check( $transient ) {
-        $remote = $this->request();
-        if ( ! $remote ) {
-            if ( Bootstrap::is_test_mode() ) {
-                error_log( $this->args[ 'name' ] . ': No remote update info received.', 0 ); // phpcs:ignore
+        /**
+         * Check the release against this site's WordPress and PHP versions
+         *
+         * @param object $remote
+         * @return bool
+         */
+        private function is_compatible( $remote ) {
+            $requires     = ! empty( $remote->requires ) ? $remote->requires : '0';
+            $requires_php = ! empty( $remote->requires_php ) ? $remote->requires_php : '0';
+            return version_compare( get_bloginfo( 'version' ), $requires, '>=' ) && version_compare( PHP_VERSION, $requires_php, '>=' );
+        } // End is_compatible()
+
+
+        /**
+         * Check that an installed plugin folder belongs to us
+         *
+         * @param string $slug
+         * @return bool
+         */
+        private function is_ours( $slug ) {
+            if ( ! function_exists( 'get_plugins' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
             }
-            return $transient;
-        }
 
-        // Compare versions and requirements
-        $current_version = $this->args[ 'version' ];
-        $remote_version  = $remote->version ?? '';
-        $requires_wp     = $remote->requires ?? '0.0';
-        $requires_php    = $remote->requires_php ?? '0.0';
-
-        if ( version_compare( $current_version, $remote_version, '<' ) &&
-            version_compare( get_bloginfo( 'version' ), $requires_wp, '>=' ) &&
-            version_compare( PHP_VERSION, $requires_php, '>=' ) ) {
-
-            $transient->response[ $this->args[ 'basename' ] ] = $this->prepare( $remote );
-            if ( Bootstrap::is_test_mode() ) {
-                error_log( $this->args[ 'name' ] . ': Update available: ' . $remote_version, 0 ); // phpcs:ignore
+            foreach ( get_plugins() as $file => $data ) {
+                if ( dirname( $file ) === $slug && ! empty( $data[ 'UpdateURI' ] ) && wp_parse_url( $data[ 'UpdateURI' ], PHP_URL_HOST ) === self::HOST ) {
+                    return true;
+                }
             }
-        } else {
-            if ( Bootstrap::is_test_mode() ) {
-                error_log( $this->args[ 'name' ] . ': No update needed. Current version: ' . $current_version . ', Remote version: ' . $remote_version, 0 ); // phpcs:ignore
+            return false;
+        } // End is_ours()
+
+
+        /**
+         * Log when WP_DEBUG is on
+         *
+         * @param string $message
+         * @return void
+         */
+        private function log( $message ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'PluginRx Updater: ' . $message ); // phpcs:ignore
             }
-        }
-        return $transient;
-    } // End pre_check()
+        } // End log()
 
-
-    /**
-     * Purge the cache after a successful plugin update
-     *
-     * @param \WP_Upgrader $upgrader
-     * @param array $options
-     * @return void
-     */
-    public function purge( $upgrader, $options ) {
-        if ( ! isset( $options[ 'action' ], $options[ 'type' ] ) ) {
-            return;
-        }
-
-        if ( $options[ 'action' ] !== 'update' || $options[ 'type' ] !== 'plugin' ) {
-            return;
-        }
-
-        delete_transient( $this->cache_key );
-    } // End purge()
-
-
-    /**
-     * Filter plugin updates to prevent stale update notifications
-     *
-     * @param object $transient
-     * @return object
-     */
-    public function filter_plugin_updates( $transient ) {
-        if ( isset( $transient->response[ $this->args[ 'basename' ] ] ) ) {
-            $remote_version = $transient->response[ $this->args[ 'basename' ] ]->new_version ?? '0.0';
-            $current_version = $this->args[ 'version' ];
-
-            // Only remove if current version is >= remote version
-            if ( version_compare( $current_version, $remote_version, '>=' ) ) {
-                unset( $transient->response[ $this->args[ 'basename' ] ] );
-            }
-        }
-        return $transient;
-    } // End filter_plugin_updates()
+    }
 
 }
+
+PluginRx_Updater::instance();

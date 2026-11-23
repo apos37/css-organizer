@@ -3,16 +3,16 @@
  * Plugin Name:         CSS Organizer
  * Plugin URI:          https://pluginrx.com/plugin/css-organizer
  * Description:         Organize Customizer CSS into separate sections for a cleaner, more manageable editing experience.
- * Version:             1.2.0.1
+ * Version:             1.2.1
  * Requires at least:   6.0
- * Tested up to:        7.0
  * Requires PHP:        8.0
  * Author:              PluginRx
  * Author URI:          https://pluginrx.com/
  * Discord URI:         https://discord.gg/3HnzNEJVnR
  * Text Domain:         css-organizer
- * License:             Proprietary
- * License URI:         https://pluginrx.com/proprietary-license-agreement/
+ * License:             GPL-2.0-or-later
+ * License URI:         https://www.gnu.org/licenses/gpl-2.0.html
+ * Update URI:          https://pluginrx.com/
  * Created on:          August 8, 2024
  * Premium:             true
  */
@@ -35,6 +35,7 @@ final class Bootstrap {
     public const FILES = [
         'settings.php',
         'customizer.php',
+        'updater.php'
     ];
 
 
@@ -89,7 +90,6 @@ final class Bootstrap {
         $this->meta = $this->load_meta();
         $this->check_environment();
         add_action( 'plugins_loaded', [ $this, 'load_files' ] );
-        add_action( 'plugins_loaded', [ $this, 'check_for_updates' ] );
     } // End __construct()
 
 
@@ -159,25 +159,6 @@ final class Bootstrap {
             }
         }
     } // End load_files()
-
-
-    /**
-     * Check for plugin updates
-     */
-    public function check_for_updates() : void {
-        require_once __DIR__ . '/inc/updater.php';
-
-        $args = [
-            'name'            => self::meta( 'name' ),
-            'text_domain'     => self::meta( 'textdomain' ),
-            'basename'        => self::basename(),
-            'version'         => self::version(),
-            'author_uri'      => self::meta( 'author_uri' ),
-            'plugin_uri'      => self::meta( 'plugin_uri' ),
-            'prefix'          => 'css_organizer',
-        ];
-        new Updater( $args );
-    } // End check_for_updates()
 
 
     /**
